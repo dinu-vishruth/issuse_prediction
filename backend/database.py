@@ -1,16 +1,27 @@
 import sqlite3
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from datetime import datetime
 from typing import Optional
 import json
 from contextlib import contextmanager
 
-# Database file path
+# Database configuration
+DATABASE_URL = os.getenv("DATABASE_URL")
 DATABASE_PATH = "./deploycheck.db"
+
+# Determine if using PostgreSQL or SQLite
+USE_POSTGRES = DATABASE_URL is not None
 
 def get_db_connection():
     """Get a database connection"""
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
+    if USE_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL)
+        conn.autocommit = False
+    else:
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
@@ -19,31 +30,58 @@ def init_db():
     cursor = conn.cursor()
     
     # Create users table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            full_name TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    if USE_POSTGRES:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                full_name TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                full_name TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
     
     # Create analyses table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS analyses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            filename TEXT NOT NULL,
-            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            critical_count INTEGER DEFAULT 0,
-            warning_count INTEGER DEFAULT 0,
-            passed_count INTEGER DEFAULT 0,
-            total_files INTEGER DEFAULT 0,
-            issues_json TEXT,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    """)
+    if USE_POSTGRES:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS analyses (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                filename TEXT NOT NULL,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                critical_count INTEGER DEFAULT 0,
+                warning_count INTEGER DEFAULT 0,
+                passed_count INTEGER DEFAULT 0,
+                total_files INTEGER DEFAULT 0,
+                issues_json TEXT,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+    else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS analyses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                filename TEXT NOT NULL,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                critical_count INTEGER DEFAULT 0,
+                warning_count INTEGER DEFAULT 0,
+                passed_count INTEGER DEFAULT 0,
+                total_files INTEGER DEFAULT 0,
+                issues_json TEXT,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
     
     conn.commit()
     conn.close()
