@@ -1,4 +1,4 @@
-# Issuse Prediction - Catch deployment errors before they happen
+# Issue Prediction - Catch deployment errors before they happen
 
 A web application that analyzes your project files and catches deployment errors before they reach production.
 
