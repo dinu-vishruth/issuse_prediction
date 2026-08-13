@@ -10,7 +10,7 @@ A web application that analyzes your project files and catches deployment errors
 - **Multi-Language Support**: Supports Python, Node.js, Docker, and docker-compose projects
 - **Environment Variable Detection**: Identifies missing environment variables
 - **Cross-File Analysis**: Detects configuration mismatches across files
-
+- **CI-CD Pipeline: CI-CD Pipeline for integrating continously and deploying
 ## Quick Start
 
 ### Prerequisites
